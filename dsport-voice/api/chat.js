@@ -236,17 +236,17 @@ MAX(L950S等) ボンネットダクト 税込52800 販売中
 公式ショップ：https://store.shopping.yahoo.co.jp/official-d-sport/`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
-      メソッド: 'POST'、
-      ヘッダー: {
+      method: 'POST'、
+      headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey、
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        モデル: 'claude-sonnet-4-5'、
-        max_tokens: 512、
-        システム: systemPrompt、
-        メッセージ、
+        model: 'claude-sonnet-4-5'、
+        max_tokens: 256、
+        system: systemPrompt、
+        messages,
       }),
     });
 
@@ -254,6 +254,6 @@ MAX(L950S等) ボンネットダクト 税込52800 販売中
     res.status(200).json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: '内部サーバーエラー' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
