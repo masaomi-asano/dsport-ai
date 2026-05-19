@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'tts-1',
         input: text.slice(0, 1000),
-        voice: 'nova',
+        voice: 'shimmer',
         response_format: 'mp3',
         speed: 1.0,
       }),
