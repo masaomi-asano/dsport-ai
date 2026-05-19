@@ -566,12 +566,14 @@ async function speak(text) {
       currentAudio = audio;
 
       audio.onended = () => {
-        isSpeaking = false;
-        setMicState('idle');
-        URL.revokeObjectURL(url);
-        currentAudio = null;
-        resolve();
-      };
+  isSpeaking = false;
+  URL.revokeObjectURL(url);
+  currentAudio = null;
+  resolve();
+  if (greeted) {
+    setTimeout(() => startListening(), 400);
+  }
+};
       audio.onerror = () => {
         isSpeaking = false;
         setMicState('idle');
