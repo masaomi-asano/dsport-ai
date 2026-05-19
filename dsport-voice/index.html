@@ -368,19 +368,23 @@ function setupRecognition() {
     setMicState('listening');
   };
 
-  r.onresult = (e) => {
-    const text = e.results[0][0].transcript;
+ r.onresult = (e) => {
+    const result = e.results[e.results.length - 1];
+    const text = result[0].transcript;
     const interruptWords = ['すいません', 'ちょっと待って', '待って', 'ストップ'];
     const isInterrupt = interruptWords.some(w => text.includes(w));
     if (isInterrupt && isSpeaking) {
       if (currentAudio) { currentAudio.pause(); currentAudio = null; }
       isSpeaking = false;
       setMicState('idle');
+      recognition.stop();
       setTimeout(() => startListening(), 300);
       return;
     }
-    stopListening();
-    sendMessage(text);
+    if (result.isFinal) {
+      stopListening();
+      sendMessage(text);
+    }
   };
 
   r.onerror = (e) => {
