@@ -247,7 +247,7 @@ MAX(L950S等) ボンネットダクト 税込52800円から 販売中
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 256,
         system: systemPrompt,
         messages,
