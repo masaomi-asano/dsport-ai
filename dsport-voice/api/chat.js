@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'APIキーが設定されていません' });
   }
 
-  試す {
+  try {
     const { messages } = req.body;
 
     const systemPrompt = `あなたはダイハツ車専用カスタマイズパーツブランド「D-SPORT」の経験豊富な販売スタッフです。
