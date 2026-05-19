@@ -368,13 +368,8 @@ function setupRecognition() {
     setMicState('listening');
   };
 
- r.onresult = (e) => {
+  r.onresult = (e) => {
     const text = e.results[0][0].transcript;
-    if (text.length < 8) {
-      recognition.stop();
-      setTimeout(() => startListening(), 300);
-      return;
-    }
     stopListening();
     sendMessage(text);
   };
@@ -393,8 +388,6 @@ function setupRecognition() {
   return r;
 }
 
-let greeted = false;
-
 function toggleMic() {
   if (isSpeaking) {
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -406,17 +399,7 @@ function toggleMic() {
     stopListening();
     return;
   }
-  if (!greeted) {
-    greeted = true;
-    speakThenListen('お電話ありがとうございます。D-SPORTのAIサポートです。パーツの適合・商品に関するご質問にお答えします。');
-  } else {
-    startListening();
-  }
-}
-
-async function speakThenListen(text) {
-  await speak(text);
-  setTimeout(() => startListening(), 2500);
+  startListening();
 }
 
 function startListening() {
@@ -573,7 +556,6 @@ async function speak(text) {
       setMicState('idle');
       URL.revokeObjectURL(url);
       currentAudio = null;
-      resolve();
     };
     audio.onerror = () => {
       isSpeaking = false;
