@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         input: text.slice(0, 1000),
         voice: 'fable',
         response_format: 'mp3',
-        speed: 1.0,
+        speed: 1.1,
       }),
     });
 
