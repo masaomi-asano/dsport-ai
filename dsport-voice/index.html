@@ -564,6 +564,7 @@ async function sendMessage(text) {
     });
 
     const data = await res.json();
+   if (data.error) throw new Error(data.error.message || 'API Error');
     const raw = data.content?.[0]?.text || 'エラーが発生しました。';
     history.push({ role: 'assistant', content: raw });
 
