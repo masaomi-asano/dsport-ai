@@ -585,7 +585,22 @@ async function speak(text) {
         currentAudio = null;
         resolve();
       };
-      audio.play();
+     audio.play();
+
+      const interrupt = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      interrupt.lang = 'ja-JP';
+      interrupt.continuous = false;
+      interrupt.interimResults = true;
+      interrupt.onresult = () => {
+        if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+        isSpeaking = false;
+        setMicState('idle');
+        interrupt.stop();
+        setTimeout(() => startListening(), 100);
+      };
+      interrupt.onerror = () => {};
+      try { interrupt.start(); } catch(e) {}
+
     } catch(e) {
       isSpeaking = false;
       setMicState('idle');
