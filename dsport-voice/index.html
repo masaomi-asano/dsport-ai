@@ -569,7 +569,7 @@ async function speak(text) {
       currentAudio = null;
       resolve();
       if (greeted) {
-        setTimeout(() => startListening(), 400);
+        setTimeout(() => startListening(), 1500);
       }
     };
     audio.onerror = () => {
