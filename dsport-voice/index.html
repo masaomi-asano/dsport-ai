@@ -390,7 +390,7 @@ function setupRecognition() {
 
 function toggleMic() {
   if (isSpeaking) {
-    synth.cancel();
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
     isSpeaking = false;
     setMicState('idle');
     return;
@@ -526,23 +526,47 @@ function parseMatches(txt) {
   return out;
 }
 
-// ── TTS ──
-function speak(text) {
-  if (!synth) return;
-  synth.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'ja-JP';
-  utt.rate = 1.05;
-  utt.pitch = 1.0;
+// ── TTS (OpenAI) ──
+let currentAudio = null;
 
-  const voices = synth.getVoices().filter(v => v.lang.startsWith('ja'));
-  if (voices.length > 0) utt.voice = voices[0];
+async function speak(text) {
+  if (!text) return;
+  try {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+    isSpeaking = true;
+    setMicState('speaking');
 
-  utt.onstart = () => { isSpeaking = true; setMicState('speaking'); };
-  utt.onend = () => { isSpeaking = false; setMicState('idle'); };
-  utt.onerror = () => { isSpeaking = false; setMicState('idle'); };
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error('TTS error');
 
-  synth.speak(utt);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    currentAudio = audio;
+
+    audio.onended = () => {
+      isSpeaking = false;
+      setMicState('idle');
+      URL.revokeObjectURL(url);
+      currentAudio = null;
+    };
+    audio.onerror = () => {
+      isSpeaking = false;
+      setMicState('idle');
+      currentAudio = null;
+    };
+    audio.play();
+  } catch(e) {
+    isSpeaking = false;
+    setMicState('idle');
+  }
 }
 
 // ── Main send ──
