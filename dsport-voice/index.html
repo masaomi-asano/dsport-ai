@@ -360,7 +360,7 @@ function setupRecognition() {
   if (!SR) return null;
   const r = new SR();
   r.lang = 'ja-JP';
-  r.continuous = true;
+  r.continuous = false;
   r.interimResults = false;
 
   r.onstart = () => {
