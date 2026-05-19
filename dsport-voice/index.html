@@ -421,6 +421,11 @@ function startListening() {
     alert('お使いのブラウザは音声認識に対応していません。Chrome または Edge をお試しください。');
     return;
   }
+  if (isSpeaking) {
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    isSpeaking = false;
+    setMicState('idle');
+  }
   recognition.start();
 }
 
