@@ -361,7 +361,7 @@ function setupRecognition() {
   const r = new SR();
   r.lang = 'ja-JP';
   r.continuous = true;
-  r.interimResults = false;
+  r.interimResults = true;
 
   r.onstart = () => {
     isListening = true;
