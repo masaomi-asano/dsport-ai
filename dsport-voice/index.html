@@ -368,9 +368,10 @@ function setupRecognition() {
     setMicState('listening');
   };
 
- r.onresult = (e) => {
-    const result = e.results[e.results.length - 1];
-    const text = result[0].transcript;
+r.onresult = (e) => {
+      const result = e.results[e.results.length - 1];
+      const text = result[0].transcript;
+      console.log('認識中:', text, 'isFinal:', result.isFinal);
     const interruptWords = ['すいません', 'ちょっと待って', '待って', 'ストップ'];
     const isInterrupt = interruptWords.some(w => text.includes(w));
     if (isInterrupt) {
