@@ -588,22 +588,7 @@ async function speak(text) {
         }
       };
 
-      const interrupt = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      interrupt.lang = 'ja-JP';
-      interrupt.continuous = false;
-      interrupt.interimResults = false;
-      interrupt.onresult = (e) => {
-        const transcript = e.results[0][0].transcript;
-        if (transcript && transcript.length >= 30) {
-          if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-          isSpeaking = false;
-          setMicState('idle');
-          interrupt.stop();
-          sendMessage(transcript);
-        }
-      };
-      interrupt.onerror = () => {};
-      try { interrupt.start(); } catch(e) {}
+     
       audio.onerror = () => {
         isSpeaking = false;
         setMicState('idle');
