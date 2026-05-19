@@ -388,6 +388,8 @@ function setupRecognition() {
   return r;
 }
 
+let greeted = false;
+
 function toggleMic() {
   if (isSpeaking) {
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -399,7 +401,18 @@ function toggleMic() {
     stopListening();
     return;
   }
-  startListening();
+  if (!greeted) {
+    greeted = true;
+    const greetText = 'お電話ありがとうございます。D-SPORTのAIサポートです。パーツの適合・商品に関するご質問にお答えします。';
+    speakThenListen(greetText);
+  } else {
+    startListening();
+  }
+}
+
+async function speakThenListen(text) {
+  await speak(text);
+  setTimeout(() => startListening(), 300);
 }
 
 function startListening() {
