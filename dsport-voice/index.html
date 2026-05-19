@@ -581,7 +581,7 @@ async function speak(text) {
       interrupt.interimResults = false;
       interrupt.onresult = (e) => {
         const transcript = e.results[0][0].transcript;
-        if (transcript && transcript.length >= 15) {
+        if (transcript && transcript.length >= 8) {
           if (currentAudio) { currentAudio.pause(); currentAudio = null; }
           isSpeaking = false;
           setMicState('idle');
