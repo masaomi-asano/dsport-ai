@@ -388,8 +388,6 @@ function setupRecognition() {
   return r;
 }
 
-let greeted = false;
-
 function toggleMic() {
   if (isSpeaking) {
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -401,18 +399,7 @@ function toggleMic() {
     stopListening();
     return;
   }
-  if (!greeted) {
-    greeted = true;
-    const greetText = 'お電話ありがとうございます。D-SPORTのAIサポートです。パーツの適合・商品に関するご質問にお答えします。';
-    speakThenListen(greetText);
-  } else {
-    startListening();
-  }
-}
-
-async function speakThenListen(text) {
-  await speak(text);
-  setTimeout(() => startListening(), 300);
+  startListening();
 }
 
 function startListening() {
@@ -420,11 +407,6 @@ function startListening() {
   if (!recognition) {
     alert('お使いのブラウザは音声認識に対応していません。Chrome または Edge をお試しください。');
     return;
-  }
-  if (isSpeaking) {
-    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    isSpeaking = false;
-    setMicState('idle');
   }
   recognition.start();
 }
@@ -549,70 +531,45 @@ let currentAudio = null;
 
 async function speak(text) {
   if (!text) return;
-  return new Promise(async (resolve) => {
-    try {
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-      }
-      isSpeaking = true;
-      setMicState('speaking');
+  try {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+    isSpeaking = true;
+    setMicState('speaking');
 
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) throw new Error('TTS error');
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error('TTS error');
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      currentAudio = audio;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    currentAudio = audio;
 
-      audio.onended = () => {
-  isSpeaking = false;
-  URL.revokeObjectURL(url);
-  currentAudio = null;
-  resolve();
-  if (greeted) {
-    setTimeout(() => startListening(), 400);
-  }
-};
-      audio.onerror = () => {
-        isSpeaking = false;
-        setMicState('idle');
-        currentAudio = null;
-        resolve();
-      };
-     audio.play();
-
-      const interrupt = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      interrupt.lang = 'ja-JP';
-      interrupt.continuous = false;
-      interrupt.interimResults = false;
-      interrupt.onresult = (e) => {
-        const transcript = e.results[0][0].transcript;
-        if (transcript && transcript.length >= 10) {
-          if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-          isSpeaking = false;
-          setMicState('idle');
-          interrupt.stop();
-          sendMessage(transcript);
-        }
-      };
-      interrupt.onerror = () => {};
-      try { interrupt.start(); } catch(e) {}
-
-    } catch(e) {
+    audio.onended = () => {
       isSpeaking = false;
       setMicState('idle');
-      resolve();
-    }
-  });
+      URL.revokeObjectURL(url);
+      currentAudio = null;
+    };
+    audio.onerror = () => {
+      isSpeaking = false;
+      setMicState('idle');
+      currentAudio = null;
+    };
+    audio.play();
+  } catch(e) {
+    isSpeaking = false;
+    setMicState('idle');
+  }
 }
 
-// ── Main send ──
+// ── Main send (Streaming) ──
 async function sendMessage(text) {
   if (busy) return;
   busy = true;
@@ -631,19 +588,95 @@ async function sendMessage(text) {
     });
 
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const resText = await res.text();
-    let data;
-    try { data = JSON.parse(resText); } catch(e) { throw new Error('Parse error'); }
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-    const raw = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : null;
-    if (!raw) throw new Error('No content');
-    history.push({ role: 'assistant', content: raw });
 
     think.remove();
 
-    const isEsc = raw.includes('[ESC]') || raw.startsWith('[ESC]');
-    const matches = parseMatches(raw);
-    const clean = raw.replace(/\[ESC\]/g, '').replace(/\[MATCH\|[^\]]+\]/g, '').trim();
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let ttsBuffer = '';
+    let ttsQueue = [];
+    let ttsPlaying = false;
+    let bubbleEl = null;
+
+    // TTS queue processor
+    async function processTtsQueue() {
+      if (ttsPlaying || ttsQueue.length === 0) return;
+      ttsPlaying = true;
+      const chunk = ttsQueue.shift();
+      await speak(chunk);
+      ttsPlaying = false;
+      processTtsQueue();
+    }
+
+    // Split on Japanese sentence endings
+    function extractSentences(buf) {
+      const sentences = [];
+      let remaining = buf;
+      const re = /[^。、！？\.!?]+[。！？\.!?]/g;
+      let match;
+      let lastIndex = 0;
+      while ((match = re.exec(buf)) !== null) {
+        sentences.push(match[0]);
+        lastIndex = match.index + match[0].length;
+      }
+      remaining = buf.slice(lastIndex);
+      return { sentences, remaining };
+    }
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error) throw new Error(parsed.error);
+          if (parsed.text) {
+            fullText += parsed.text;
+            ttsBuffer += parsed.text;
+
+            // Update bubble
+            const clean = fullText.replace(/\[ESC\]/g, '').replace(/\[MATCH\|[^\]]+\]/g, '').trim();
+            if (!bubbleEl) {
+              bubbleEl = addMsg(escHtml(clean).replace(/\n/g, '<br>'), 'bot');
+            } else {
+              const bub = bubbleEl.querySelector('.bubble');
+              if (bub) bub.innerHTML = escHtml(clean).replace(/\n/g, '<br>');
+            }
+
+            // Extract sentences for TTS
+            const { sentences, remaining } = extractSentences(ttsBuffer);
+            ttsBuffer = remaining;
+            sentences.forEach(s => {
+              const st = s.replace(/\[ESC\]/g, '').replace(/\[MATCH\|[^\]]+\]/g, '').replace(/https?:\/\/\S+/g, '').trim();
+              if (st.length > 1) {
+                ttsQueue.push(st);
+                processTtsQueue();
+              }
+            });
+          }
+        } catch(e) {}
+      }
+    }
+
+    // Flush remaining buffer
+    if (ttsBuffer.trim().length > 1) {
+      const st = ttsBuffer.replace(/\[ESC\]/g, '').replace(/\[MATCH\|[^\]]+\]/g, '').replace(/https?:\/\/\S+/g, '').trim();
+      ttsQueue.push(st);
+      processTtsQueue();
+    }
+
+    // Add product cards and handle escalation
+    const isEsc = fullText.includes('[ESC]');
+    const matches = parseMatches(fullText);
+    const clean = fullText.replace(/\[ESC\]/g, '').replace(/\[MATCH\|[^\]]+\]/g, '').trim();
 
     if (isEsc) {
       const log = document.getElementById('log');
@@ -653,13 +686,16 @@ async function sendMessage(text) {
       log.appendChild(esc);
     }
 
-    let html = escHtml(clean).replace(/\n/g, '<br>');
-    matches.forEach(m => { html += makeCard(m); });
-    addMsg(html, 'bot');
+    if (matches.length > 0 && bubbleEl) {
+      const bub = bubbleEl.querySelector('.bubble');
+      if (bub) {
+        let html = escHtml(clean).replace(/\n/g, '<br>');
+        matches.forEach(m => { html += makeCard(m); });
+        bub.innerHTML = html;
+      }
+    }
 
-    // 音声読み上げ（商品カード部分を除いたテキストのみ）
-    const speakText = clean.replace(/https?:\/\/\S+/g, '').trim();
-    speak(speakText);
+    history.push({ role: 'assistant', content: fullText });
 
   } catch (e) {
     think.remove();
