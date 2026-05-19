@@ -544,42 +544,47 @@ let currentAudio = null;
 
 async function speak(text) {
   if (!text) return;
-  try {
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
+  return new Promise(async (resolve) => {
+    try {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+      isSpeaking = true;
+      setMicState('speaking');
+
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error('TTS error');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      currentAudio = audio;
+
+      audio.onended = () => {
+        isSpeaking = false;
+        setMicState('idle');
+        URL.revokeObjectURL(url);
+        currentAudio = null;
+        resolve();
+      };
+      audio.onerror = () => {
+        isSpeaking = false;
+        setMicState('idle');
+        currentAudio = null;
+        resolve();
+      };
+      audio.play();
+    } catch(e) {
+      isSpeaking = false;
+      setMicState('idle');
+      resolve();
     }
-    isSpeaking = true;
-    setMicState('speaking');
-
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    if (!res.ok) throw new Error('TTS error');
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    currentAudio = audio;
-
-    audio.onended = () => {
-      isSpeaking = false;
-      setMicState('idle');
-      URL.revokeObjectURL(url);
-      currentAudio = null;
-    };
-    audio.onerror = () => {
-      isSpeaking = false;
-      setMicState('idle');
-      currentAudio = null;
-    };
-    audio.play();
-  } catch(e) {
-    isSpeaking = false;
-    setMicState('idle');
-  }
+  });
 }
 
 // ── Main send ──
