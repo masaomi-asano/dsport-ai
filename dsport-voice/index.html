@@ -388,6 +388,8 @@ function setupRecognition() {
   return r;
 }
 
+let greeted = false;
+
 function toggleMic() {
   if (isSpeaking) {
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -399,7 +401,17 @@ function toggleMic() {
     stopListening();
     return;
   }
-  startListening();
+  if (!greeted) {
+    greeted = true;
+    speakThenListen('お電話ありがとうございます。D-SPORTのAIサポートです。パーツの適合・商品に関するご質問にお答えします。');
+  } else {
+    startListening();
+  }
+}
+
+async function speakThenListen(text) {
+  await speak(text);
+  setTimeout(() => startListening(), 500);
 }
 
 function startListening() {
@@ -531,42 +543,50 @@ let currentAudio = null;
 
 async function speak(text) {
   if (!text) return;
-  try {
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
+  return new Promise(async (resolve) => {
+    try {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+      isSpeaking = true;
+      setMicState('speaking');
+
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error('TTS error');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      currentAudio = audio;
+
+      audio.onended = () => {
+        isSpeaking = false;
+        setMicState('idle');
+        URL.revokeObjectURL(url);
+        currentAudio = null;
+        resolve();
+        if (greeted) {
+          setTimeout(() => startListening(), 1000);
+        }
+      };
+      audio.onerror = () => {
+        isSpeaking = false;
+        setMicState('idle');
+        currentAudio = null;
+        resolve();
+      };
+      audio.play();
+    } catch(e) {
+      isSpeaking = false;
+      setMicState('idle');
+      resolve();
     }
-    isSpeaking = true;
-    setMicState('speaking');
-
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    if (!res.ok) throw new Error('TTS error');
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    currentAudio = audio;
-
-    audio.onended = () => {
-      isSpeaking = false;
-      setMicState('idle');
-      URL.revokeObjectURL(url);
-      currentAudio = null;
-    };
-    audio.onerror = () => {
-      isSpeaking = false;
-      setMicState('idle');
-      currentAudio = null;
-    };
-    audio.play();
-  } catch(e) {
-    isSpeaking = false;
-    setMicState('idle');
-  }
+  });
 }
 
 // ── Main send ──
