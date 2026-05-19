@@ -570,12 +570,10 @@ async function speak(text) {
 
     audio.onended = () => {
       isSpeaking = false;
+      setMicState('idle');
       URL.revokeObjectURL(url);
       currentAudio = null;
       resolve();
-      if (greeted) {
-        setTimeout(() => startListening(), 1500);
-      }
     };
     audio.onerror = () => {
       isSpeaking = false;
