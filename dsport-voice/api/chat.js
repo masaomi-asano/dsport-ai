@@ -244,7 +244,7 @@ MAX(L950S等) ボンネットダクト 税込52800円から 販売中
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 512,
+        max_tokens: 256,
         system: systemPrompt,
         messages,
       }),
