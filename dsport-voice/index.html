@@ -370,6 +370,15 @@ function setupRecognition() {
 
   r.onresult = (e) => {
     const text = e.results[0][0].transcript;
+    const interruptWords = ['すいません', 'ちょっと待って', '待って', 'ストップ'];
+    const isInterrupt = interruptWords.some(w => text.includes(w));
+    if (isInterrupt && isSpeaking) {
+      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      isSpeaking = false;
+      setMicState('idle');
+      setTimeout(() => startListening(), 300);
+      return;
+    }
     stopListening();
     sendMessage(text);
   };
