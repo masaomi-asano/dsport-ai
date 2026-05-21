@@ -1,0 +1,10 @@
+{
+  "name": "dsport-voice",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "twilio": "^4.0.0",
+    "ws": "^8.0.0",
+    "openai": "^4.0.0"
+  }
+}
