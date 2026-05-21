@@ -1,14 +1,17 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/*.js", "use": "@vercel/node" },
+    { "src": "api/chat.js", "use": "@vercel/node" },
+    { "src": "api/tts.js", "use": "@vercel/node" },
+    { "src": "api/voice.js", "use": "@vercel/node" },
+    { "src": "api/realtime.js", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/voice", "dest": "/api/voice.js" },
-    { "src": "/api/realtime", "dest": "/api/realtime.js" },
     { "src": "/api/chat", "dest": "/api/chat.js" },
     { "src": "/api/tts", "dest": "/api/tts.js" },
+    { "src": "/api/voice", "dest": "/api/voice.js" },
+    { "src": "/api/realtime", "dest": "/api/realtime.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
