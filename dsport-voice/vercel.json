@@ -1,6 +1,9 @@
 {
   "rewrites": [
+    { "source": "/api/voice", "destination": "/api/voice.js" },
+    { "source": "/api/realtime", "destination": "/api/realtime.js" },
     { "source": "/api/chat", "destination": "/api/chat.js" },
+    { "source": "/api/tts", "destination": "/api/tts.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
