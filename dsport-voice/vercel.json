@@ -1,17 +1,17 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/chat.js", "use": "@vercel/node" },
-    { "src": "api/tts.js", "use": "@vercel/node" },
-    { "src": "api/voice.js", "use": "@vercel/node" },
-    { "src": "api/realtime.js", "use": "@vercel/node" },
-    { "src": "index.html", "use": "@vercel/static" }
+    { "src": "dsport-voice/api/chat.js", "use": "@vercel/node" },
+    { "src": "dsport-voice/api/tts.js", "use": "@vercel/node" },
+    { "src": "dsport-voice/api/voice.js", "use": "@vercel/node" },
+    { "src": "dsport-voice/api/realtime.js", "use": "@vercel/node" },
+    { "src": "dsport-voice/index.html", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/chat", "dest": "/api/chat.js" },
-    { "src": "/api/tts", "dest": "/api/tts.js" },
-    { "src": "/api/voice", "dest": "/api/voice.js" },
-    { "src": "/api/realtime", "dest": "/api/realtime.js" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/api/chat", "dest": "/dsport-voice/api/chat.js" },
+    { "src": "/api/tts", "dest": "/dsport-voice/api/tts.js" },
+    { "src": "/api/voice", "dest": "/dsport-voice/api/voice.js" },
+    { "src": "/api/realtime", "dest": "/dsport-voice/api/realtime.js" },
+    { "src": "/(.*)", "dest": "/dsport-voice/index.html" }
   ]
 }
